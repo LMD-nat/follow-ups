@@ -178,3 +178,38 @@ table(visits$ER_follow_up, visits$return_cat)
 
 # follow-ups only happen in the morning, so here's a check, looks good, 130 follow-up revisits
 # I added some noise, but the follow-up visits are all very plausible
+
+# Planned Re-Visits KMM Model
+# NOTE THAT THIS IS NOT REAL PATIENT DATA!!!
+library(readr)
+urlfile="https://raw.githubusercontent.com/LMD-nat/follow-ups/main/index_visits8.csv"
+mydata<-read_csv(url(urlfile))
+
+index_visits8 <- mydata
+
+# library(readxl)
+# index_visits8 <- read_excel("index_visits8.xlsx", 
+#                             col_types = c("text", "date", "date", 
+#                                           "skip", "skip", "numeric", "skip", 
+#                                           "skip", "skip", "numeric", "text", 
+#                                           "text", "text", "numeric", "text", 
+#                                           "text", "numeric"))
+
+index_visits8$index_arrival_time <- strptime(index_visits8$index_arrival_time, format = "%Y-%m-%d %H:%M")
+index_visits8$arrival_time_rv <- strptime(index_visits8$arrival_time_rv, format = "%Y-%m-%d %H:%M")
+
+### BTW days is the time between (in days) between visits, accounting for hours, minutes, etc.
+index_visits8$btw_days <- ((index_visits8$arrival_date_rv-index_visits8$index_arrival_date)/60)/24
+index_visits8$btw_days <- as.numeric(index_visits8$btw_days) 
+
+followups <- subset(index_visits8, ER_follow_up == 1)
+not_followups <- subset(index_visits8, ER_follow_up == 0)
+
+# sample 500 random non-follow up data points from the model
+sample_not_followups <- not_followups[sample(nrow(not_followups), 500), ]
+
+join2 <- bind_rows(followups, sample_not_followups)
+hc = hclust(join2, method = "complete")
+
+# Ok so join2 is the set to use for making the model, save it as a .csv file too
+# write.csv(join2, "~/Downloads/ER_visits_set.csv")
